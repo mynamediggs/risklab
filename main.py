@@ -1,8 +1,7 @@
 import simulation
+from simulation import monte_carlo_simulation, compare_to_theoretical
 
 if __name__ == '__main__':
-    claims = simulation.generate_claims()
-    severity = simulation.generate_severity(claims)
-    policy_losses = simulation.calculate_losses(claims, severity)
-
+    losses = monte_carlo_simulation()
+    compare_to_theoretical(losses)
 

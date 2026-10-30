@@ -1,61 +1,77 @@
 import numpy as np
 
-np.random.seed(42)
 NUM_POLICIES = 1000
 CLAIM_RATE = 0.3
+AVERAGE_CLAIM_COST = 1000
 
-def generate_claims():
+
+np.random.seed(42)
+
+def simulate_portfolio():
   claims = np.random.poisson(CLAIM_RATE, NUM_POLICIES)
 
-  print("Claims generated\n")
-
-  print("First 10 policies: [", end="")
-  for i in range(10):
-    print(f"{claims[i]}, ", end="")
-  print("...]")
-  print("Total claims:", claims.sum())
-  print("Expected claims:", NUM_POLICIES * CLAIM_RATE)
-  print()
-  return claims
-
-
-def generate_severity(claims):
-  average_claim_cost = 1000
   severity_sigma = 1.0
+  severity_mu = np.log(AVERAGE_CLAIM_COST) - severity_sigma ** 2 / 2
 
-  severity_mu = np.log(average_claim_cost) - (severity_sigma ** 2 / 2)
+  claim_costs = np.random.lognormal(
+    mean=severity_mu,
+    sigma=severity_sigma,
+    size=int(claims.sum())
+  )
 
-  # lognormal takes mean and standard deviation of the underlying normal distribution
-  severity = np.random.lognormal(
-      severity_mu,
-      severity_sigma,
-      int(claims.sum()))
-
-  print("Severity generated\n")
-
-  print("First 10 claim costs: [", end="")
-  for i in range(10):
-    print(f"{round(severity[i], 3)}, ", end="")
-  print("...]")
-  print("Total claim costs:", round(severity.sum(), 3))
-  print("Average claim cost:", round(severity.mean(), 3))
-  print()
-  return severity
-
-
-def calculate_losses(claims, severity):
   policy_losses = np.zeros(NUM_POLICIES)
+  claim_index = 0
 
-  index = 0
+  for i in range(NUM_POLICIES):
+    num_claims = claims[i]
 
-  for i, count in enumerate(claims):
-    if count > 0:
-      policy_losses[i] = severity[index:index + count].sum()
-      index += count
+    policy_losses[i] = claim_costs[
+      claim_index:claim_index + num_claims
+    ].sum()
 
-  print("Losses generated\n")
-  print("Total portfolio losses:", round(policy_losses.sum(), 3))
-  print("Average loss per policy:", round(policy_losses.mean(), 3))
-  print("Largest individual policy loss:", round(policy_losses.max(), 3))
-  print()
-  return policy_losses
+    claim_index += num_claims
+
+  return {
+    "total_claims": int(claims.sum()),
+    "total_losses": float(policy_losses.sum()),
+    "average_loss": float(policy_losses.mean()),
+    "largest_policy_loss": float(policy_losses.max())
+  }
+
+
+def monte_carlo_simulation():
+  num_simulations = 1000
+
+  portfolio_losses = np.zeros(num_simulations)
+  for i in range(num_simulations):
+    portfolio_losses[i] = simulate_portfolio()["total_losses"]
+
+  p95 = np.percentile(portfolio_losses, 95)
+  p99 = np.percentile(portfolio_losses, 99)
+
+  print(f"Number of simulated years:", num_simulations)
+  print(f"Average annual loss: ${portfolio_losses.mean():,.2f}")
+  print("Median annual loss:", np.median(portfolio_losses))
+  print("Minimum annual loss:", portfolio_losses.min())
+  print("Maximum annual loss:", portfolio_losses.max())
+  print("95th percentile loss:", p95)
+  print("99th percentile loss:", p99)
+
+  return portfolio_losses
+
+
+def compare_to_theoretical(portfolio_losses):
+  theoretical_mean = NUM_POLICIES * CLAIM_RATE * AVERAGE_CLAIM_COST
+  theoretical_variance = (
+      NUM_POLICIES
+      * CLAIM_RATE
+      * AVERAGE_CLAIM_COST**2
+      * np.exp(1**2)
+  )
+  theoretical_std = np.sqrt(theoretical_variance)
+
+  print("\n--- Theoretical vs. Simulated ---")
+  print(f"Theoretical mean annual loss: ${theoretical_mean:,.2f}")
+  print(f"Simulated mean annual loss:   ${portfolio_losses.mean():,.2f}")
+  print(f"Theoretical standard deviation: ${theoretical_std:,.2f}")
+  print(f"Simulated standard deviation:   ${portfolio_losses.std():,.2f}")

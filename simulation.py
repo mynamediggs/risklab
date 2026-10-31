@@ -40,7 +40,7 @@ def simulate_portfolio():
 
 
 def monte_carlo_simulation():
-  num_simulations = 1000
+  num_simulations = 10000
 
   portfolio_losses = np.zeros(num_simulations)
   for i in range(num_simulations):
@@ -57,7 +57,7 @@ def monte_carlo_simulation():
   print("95th percentile loss:", p95)
   print("99th percentile loss:", p99)
 
-  return portfolio_losses
+  return portfolio_losses, p95, p99
 
 
 def compare_to_theoretical(portfolio_losses):

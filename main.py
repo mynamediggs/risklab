@@ -30,9 +30,12 @@ if __name__ == '__main__':
     # )
 
     # model.plot_loss_distribution(portfolio_losses, p95, p99)
-    simulation.calculate_expected_portfolio_losses()
+    simulation.calculate_expected_portfolio_losses(NUM_POLICIES, AVERAGE_CLAIM_COST, CLAIM_RATE)
 
     pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
-    gross_premium = simulation.calculate_gross_premium()
+    gross_premium = simulation.calculate_gross_premium(RISK_LOADING,
+                                                       NUM_POLICIES,
+                                                       AVERAGE_CLAIM_COST,
+                                                       CLAIM_RATE)
 
 

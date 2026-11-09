@@ -1,19 +1,14 @@
 import numpy as np
 
-from parameters import (
-  CLAIM_RATE,
-  NUM_POLICIES,
-  AVERAGE_CLAIM_COST,
-  RISK_LOADING,
-)
+
 
 np.random.seed(42)
 
-def simulate_portfolio():
-  claims = np.random.poisson(CLAIM_RATE, NUM_POLICIES)
+def simulate_portfolio(claim_rate, num_policies, average_claim_cost):
+  claims = np.random.poisson(claim_rate, num_policies)
 
   severity_sigma = 1.0
-  severity_mu = np.log(AVERAGE_CLAIM_COST) - severity_sigma ** 2 / 2
+  severity_mu = np.log(average_claim_cost) - severity_sigma ** 2 / 2
 
   claim_costs = np.random.lognormal(
     mean=severity_mu,
@@ -21,10 +16,10 @@ def simulate_portfolio():
     size=int(claims.sum())
   )
 
-  policy_losses = np.zeros(NUM_POLICIES)
+  policy_losses = np.zeros(num_policies)
   claim_index = 0
 
-  for i in range(NUM_POLICIES):
+  for i in range(num_policies):
     num_claims = claims[i]
 
     policy_losses[i] = claim_costs[
@@ -87,12 +82,12 @@ def monte_carlo_simulation():
     )
 
 
-def compare_to_theoretical(portfolio_losses):
-  theoretical_mean = NUM_POLICIES * CLAIM_RATE * AVERAGE_CLAIM_COST
+def compare_to_theoretical(portfolio_losses, num_policies, claim_rate, average_claim_cost):
+  theoretical_mean = num_policies * claim_rate * average_claim_cost
   theoretical_variance = (
-      NUM_POLICIES
-      * CLAIM_RATE
-      * AVERAGE_CLAIM_COST**2
+      num_policies
+      * claim_rate
+      * average_claim_cost**2
       * np.exp(1**2)
   )
   theoretical_std = np.sqrt(theoretical_variance)
@@ -109,13 +104,17 @@ def analyze_frequency_and_severity(
       total_claims_per_year,
       policies_with_claims_per_year,
       average_claim_severities,
-      largest_claims
+      largest_claims,
+      num_policies,
+      claim_rate,
+      average_claim_cost,
   ):
+
     total_claims = total_claims_per_year.sum()
 
     # Estimate the average frequency of claims per policy-year
     estimated_claim_rate = (
-        total_claims / (NUM_POLICIES * len(total_claims_per_year))
+        total_claims / (num_policies * len(total_claims_per_year))
     )
 
     # Weight each year's average severity by its number of claims
@@ -126,7 +125,7 @@ def analyze_frequency_and_severity(
     )
 
     print("\n--- Claim Frequency Analysis ---")
-    print(f"Theoretical claim rate: {CLAIM_RATE:.3f}")
+    print(f"Theoretical claim rate: {claim_rate:.3f}")
     print(f"Simulated claim rate:   {estimated_claim_rate:.3f}")
     print(f"Average claims per year: {total_claims_per_year.mean():.2f}")
     print(
@@ -135,23 +134,23 @@ def analyze_frequency_and_severity(
     )
 
     print("\n--- Claim Severity Analysis ---")
-    print(f"Theoretical average claim severity: ${AVERAGE_CLAIM_COST:,.2f}")
+    print(f"Theoretical average claim severity: ${average_claim_cost:,.2f}")
     print(f"Simulated average claim severity:   ${estimated_average_severity:,.2f}")
     print(f"Average largest claim per year:     ${largest_claims.mean():,.2f}")
     print(f"Largest claim observed:             ${largest_claims.max():,.2f}")
 
 
-def calculate_expected_portfolio_losses():
-  pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
-  portfolio_losses = NUM_POLICIES * pure_premium
+def calculate_expected_portfolio_losses(num_policies, claim_rate, average_claim_cost):
+  pure_premium = claim_rate * average_claim_cost
+  portfolio_losses = num_policies * pure_premium
 
   print("\n--- Insurance Pricing ---")
   print(f"Pure premium per policy: ${pure_premium:,.2f}")
   print(f"Expected annual portfolio losses: ${portfolio_losses:,.2f}")
 
 
-def calculate_gross_premium(risk_loading = RISK_LOADING):
-  pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
+def calculate_gross_premium(risk_loading, num_policies, claim_rate, average_claim_cost):
+  pure_premium = claim_rate * average_claim_cost
   gross_premium = pure_premium * (1 + risk_loading)
 
   print("\n--- Insurance Pricing ---")
@@ -161,7 +160,7 @@ def calculate_gross_premium(risk_loading = RISK_LOADING):
   print(f"Gross premium per policy: ${gross_premium:,.2f}")
   print(
     f"Expected portfolio premium revenue: "
-    f"${gross_premium * NUM_POLICIES:,.2f}")
+    f"${gross_premium * num_policies:,.2f}")
 
   return gross_premium
 

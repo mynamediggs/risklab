@@ -1,15 +1,10 @@
 import simulation
 import model
-
-from parameters import (
-  CLAIM_RATE,
-  NUM_POLICIES,
-  AVERAGE_CLAIM_COST,
-  RISK_LOADING,
-)
+import parameters
 
 
 if __name__ == '__main__':
+    parameters = parameters.ModelParameters()
     # (
     #     portfolio_losses,
     #     p95,
@@ -30,12 +25,7 @@ if __name__ == '__main__':
     # )
 
     # model.plot_loss_distribution(portfolio_losses, p95, p99)
-    simulation.calculate_expected_portfolio_losses(NUM_POLICIES, AVERAGE_CLAIM_COST, CLAIM_RATE)
-
-    pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
-    gross_premium = simulation.calculate_gross_premium(RISK_LOADING,
-                                                       NUM_POLICIES,
-                                                       AVERAGE_CLAIM_COST,
-                                                       CLAIM_RATE)
+    simulation.calculate_expected_portfolio_losses(parameters)
+    gross_premium = simulation.calculate_gross_premium(parameters)
 
 

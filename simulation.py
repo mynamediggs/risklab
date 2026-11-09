@@ -1,14 +1,13 @@
 import numpy as np
-
-
-
 np.random.seed(42)
 
-def simulate_portfolio(claim_rate, num_policies, average_claim_cost):
-  claims = np.random.poisson(claim_rate, num_policies)
+
+
+def simulate_portfolio(model_params):
+  claims = np.random.poisson(model_params.claim_rate, model_params.num_policies)
 
   severity_sigma = 1.0
-  severity_mu = np.log(average_claim_cost) - severity_sigma ** 2 / 2
+  severity_mu = np.log(model_params.average_claim_cost) - severity_sigma ** 2 / 2
 
   claim_costs = np.random.lognormal(
     mean=severity_mu,
@@ -16,10 +15,10 @@ def simulate_portfolio(claim_rate, num_policies, average_claim_cost):
     size=int(claims.sum())
   )
 
-  policy_losses = np.zeros(num_policies)
+  policy_losses = np.zeros(model_params.num_policies)
   claim_index = 0
 
-  for i in range(num_policies):
+  for i in range(model_params.num_policies):
     num_claims = claims[i]
 
     policy_losses[i] = claim_costs[
@@ -41,6 +40,8 @@ def simulate_portfolio(claim_rate, num_policies, average_claim_cost):
       float(claim_costs.max()) if claim_costs.size > 0 else 0.0
     )
   }
+
+
 
 def monte_carlo_simulation():
   num_simulations = 10000
@@ -82,12 +83,13 @@ def monte_carlo_simulation():
     )
 
 
-def compare_to_theoretical(portfolio_losses, num_policies, claim_rate, average_claim_cost):
-  theoretical_mean = num_policies * claim_rate * average_claim_cost
+
+def compare_to_theoretical(portfolio_losses, model_params):
+  theoretical_mean = model_params.num_policies * model_params.claim_rate * model_params.average_claim_cost
   theoretical_variance = (
-      num_policies
-      * claim_rate
-      * average_claim_cost**2
+      model_params.num_policies
+      * model_params.claim_rate
+      * model_params.average_claim_cost ** 2
       * np.exp(1**2)
   )
   theoretical_std = np.sqrt(theoretical_variance)
@@ -105,16 +107,14 @@ def analyze_frequency_and_severity(
       policies_with_claims_per_year,
       average_claim_severities,
       largest_claims,
-      num_policies,
-      claim_rate,
-      average_claim_cost,
+      model_params
   ):
 
     total_claims = total_claims_per_year.sum()
 
     # Estimate the average frequency of claims per policy-year
     estimated_claim_rate = (
-        total_claims / (num_policies * len(total_claims_per_year))
+        total_claims / (model_params.num_policies * len(total_claims_per_year))
     )
 
     # Weight each year's average severity by its number of claims
@@ -125,7 +125,7 @@ def analyze_frequency_and_severity(
     )
 
     print("\n--- Claim Frequency Analysis ---")
-    print(f"Theoretical claim rate: {claim_rate:.3f}")
+    print(f"Theoretical claim rate: {model_params.claim_rate:.3f}")
     print(f"Simulated claim rate:   {estimated_claim_rate:.3f}")
     print(f"Average claims per year: {total_claims_per_year.mean():.2f}")
     print(
@@ -134,33 +134,35 @@ def analyze_frequency_and_severity(
     )
 
     print("\n--- Claim Severity Analysis ---")
-    print(f"Theoretical average claim severity: ${average_claim_cost:,.2f}")
+    print(f"Theoretical average claim severity: ${model_params.average_claim_cost:,.2f}")
     print(f"Simulated average claim severity:   ${estimated_average_severity:,.2f}")
     print(f"Average largest claim per year:     ${largest_claims.mean():,.2f}")
     print(f"Largest claim observed:             ${largest_claims.max():,.2f}")
 
 
-def calculate_expected_portfolio_losses(num_policies, claim_rate, average_claim_cost):
-  pure_premium = claim_rate * average_claim_cost
-  portfolio_losses = num_policies * pure_premium
+
+def calculate_expected_portfolio_losses(model_params):
+  pure_premium = model_params.claim_rate * model_params.average_claim_cost
+  portfolio_losses = model_params.num_policies * pure_premium
 
   print("\n--- Insurance Pricing ---")
   print(f"Pure premium per policy: ${pure_premium:,.2f}")
   print(f"Expected annual portfolio losses: ${portfolio_losses:,.2f}")
 
 
-def calculate_gross_premium(risk_loading, num_policies, claim_rate, average_claim_cost):
-  pure_premium = claim_rate * average_claim_cost
-  gross_premium = pure_premium * (1 + risk_loading)
+
+def calculate_gross_premium(model_params):
+  pure_premium = model_params.claim_rate * model_params.average_claim_cost
+  gross_premium = pure_premium * (1 + model_params.risk_loading)
 
   print("\n--- Insurance Pricing ---")
   print(f"Pure premium per policy: ${pure_premium:,.2f}")
-  print(f"Risk loading: {risk_loading:.0%}")
+  print(f"Risk loading: {model_params.risk_loading:.0%}")
   print(f"Risk loading amount: ${gross_premium - pure_premium:,.2f}")
   print(f"Gross premium per policy: ${gross_premium:,.2f}")
   print(
     f"Expected portfolio premium revenue: "
-    f"${gross_premium * num_policies:,.2f}")
+    f"${gross_premium * model_params.num_policies:,.2f}")
 
   return gross_premium
 

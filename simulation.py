@@ -43,7 +43,7 @@ def simulate_portfolio(model_params):
 
 
 
-def monte_carlo_simulation():
+def monte_carlo_simulation(model_params):
   num_simulations = 10000
 
   total_claims_per_year = np.zeros(num_simulations)
@@ -53,7 +53,7 @@ def monte_carlo_simulation():
   portfolio_losses = np.zeros(num_simulations)
 
   for i in range(num_simulations):
-    results = simulate_portfolio()
+    results = simulate_portfolio(model_params)
 
     portfolio_losses[i] = results["total_losses"]
     total_claims_per_year[i] = results["total_claims"]
@@ -166,5 +166,67 @@ def calculate_gross_premium(model_params):
 
   return gross_premium
 
+from parameters import ModelParameters
 
 
+def run_sensitivity_analysis():
+    base_parameters = ModelParameters()
+
+    claim_rates = [0.2, 0.3, 0.4, 0.5, 0.6]
+    claim_costs = [800, 900, 1000, 1100, 1200]
+    risk_loadings = [0.0, 0.1, 0.2, 0.3, 0.4]
+
+    frequency_premiums = []
+    severity_premiums = []
+    loading_premiums = []
+
+    # Test different claim frequencies
+    for rate in claim_rates:
+        parameters = ModelParameters(
+            num_policies=base_parameters.num_policies,
+            claim_rate=rate,
+            average_claim_cost=base_parameters.average_claim_cost,
+            severity_sigma=base_parameters.severity_sigma,
+            risk_loading=base_parameters.risk_loading
+        )
+
+        frequency_premiums.append(
+            calculate_gross_premium(parameters)
+        )
+
+    # Test different claim severities
+    for cost in claim_costs:
+        parameters = ModelParameters(
+            num_policies=base_parameters.num_policies,
+            claim_rate=base_parameters.claim_rate,
+            average_claim_cost=cost,
+            severity_sigma=base_parameters.severity_sigma,
+            risk_loading=base_parameters.risk_loading
+        )
+
+        severity_premiums.append(
+            calculate_gross_premium(parameters)
+        )
+
+    # Test different risk loadings
+    for loading in risk_loadings:
+        parameters = ModelParameters(
+            num_policies=base_parameters.num_policies,
+            claim_rate=base_parameters.claim_rate,
+            average_claim_cost=base_parameters.average_claim_cost,
+            severity_sigma=base_parameters.severity_sigma,
+            risk_loading=loading
+        )
+
+        loading_premiums.append(
+            calculate_gross_premium(parameters)
+        )
+
+    return {
+        "claim_rates": claim_rates,
+        "frequency_premiums": frequency_premiums,
+        "claim_costs": claim_costs,
+        "severity_premiums": severity_premiums,
+        "risk_loadings": risk_loadings,
+        "loading_premiums": loading_premiums
+    }

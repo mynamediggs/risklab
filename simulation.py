@@ -137,3 +137,17 @@ def analyze_frequency_and_severity(
     print(f"Simulated average claim severity:   ${estimated_average_severity:,.2f}")
     print(f"Average largest claim per year:     ${largest_claims.mean():,.2f}")
     print(f"Largest claim observed:             ${largest_claims.max():,.2f}")
+
+
+def calculate_expected_portfolio_losses():
+  pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
+  portfolio_losses = NUM_POLICIES * pure_premium
+
+  print("\n--- Insurance Pricing ---")
+  print(f"Pure premium per policy: ${pure_premium:,.2f}")
+  print(f"Expected annual portfolio losses: ${portfolio_losses:,.2f}")
+
+
+
+
+

@@ -1,9 +1,11 @@
 import numpy as np
 
-NUM_POLICIES = 1000
-CLAIM_RATE = 0.3
-AVERAGE_CLAIM_COST = 1000
-
+from parameters import (
+  CLAIM_RATE,
+  NUM_POLICIES,
+  AVERAGE_CLAIM_COST,
+  RISK_LOADING,
+)
 
 np.random.seed(42)
 
@@ -148,6 +150,20 @@ def calculate_expected_portfolio_losses():
   print(f"Expected annual portfolio losses: ${portfolio_losses:,.2f}")
 
 
+def calculate_gross_premium(risk_loading = RISK_LOADING):
+  pure_premium = CLAIM_RATE * AVERAGE_CLAIM_COST
+  gross_premium = pure_premium * (1 + risk_loading)
+
+  print("\n--- Insurance Pricing ---")
+  print(f"Pure premium per policy: ${pure_premium:,.2f}")
+  print(f"Risk loading: {risk_loading:.0%}")
+  print(f"Risk loading amount: ${gross_premium - pure_premium:,.2f}")
+  print(f"Gross premium per policy: ${gross_premium:,.2f}")
+  print(
+    f"Expected portfolio premium revenue: "
+    f"${gross_premium * NUM_POLICIES:,.2f}")
+
+  return gross_premium
 
 
 

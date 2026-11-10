@@ -3,9 +3,28 @@ import model
 import parameters
 
 
+standard_portfolio = parameters.ModelParameters(
+    claim_rate=0.3,
+    average_claim_cost=1000,
+    risk_loading=0.2
+)
+
+high_frequency_portfolio = parameters.ModelParameters(
+    claim_rate=0.5,
+    average_claim_cost=1000,
+    risk_loading=0.2
+)
+
+high_severity_portfolio = parameters.ModelParameters(
+    claim_rate=0.3,
+    average_claim_cost=1500,
+    risk_loading=0.2
+)
+
+
 if __name__ == '__main__':
     # Initialize model parameters
-    parameters = parameters.ModelParameters()
+    model_parameters = parameters.ModelParameters()
 
     # Run Monte Carlo simulation
     (
@@ -24,9 +43,9 @@ if __name__ == '__main__':
                                               policies_with_claims_per_year,
                                               average_claim_severities,
                                               largest_claims,
-                                              parameters)
+                                              model_parameters)
 
-    gross_premium = simulation.calculate_gross_premium(parameters)
-    expected_losses = simulation.calculate_expected_portfolio_losses(parameters)
+    gross_premium = simulation.calculate_gross_premium(model_parameters)
+    expected_losses = simulation.calculate_expected_portfolio_losses(model_parameters)
     sensitivity_results = simulation.run_sensitivity_analysis()
     model.plot_sensitivity_analysis(sensitivity_results)

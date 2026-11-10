@@ -14,11 +14,11 @@ class ModelParameters:
     if claim_rate < 0:
       raise ValueError("Claim rate cannot be negative.")
 
-    if average_claim_cost < 0:
-      raise ValueError("Average claim cost cannot be negative.")
+    if average_claim_cost <= 0:
+      raise ValueError("Average claim cost must be positive.")
 
-    if severity_sigma < 0:
-      raise ValueError("Severity sigma cannot be negative.")
+    if severity_sigma <= 0:
+      raise ValueError("Severity sigma must be positive.")
 
     if risk_loading < 0:
       raise ValueError("Risk loading cannot be negative.")
@@ -28,3 +28,16 @@ class ModelParameters:
     self.average_claim_cost = average_claim_cost
     self.severity_sigma = severity_sigma
     self.risk_loading = risk_loading
+
+  def with_updates(self, **updates):
+    values = {
+      "num_policies": self.num_policies,
+      "claim_rate": self.claim_rate,
+      "average_claim_cost": self.average_claim_cost,
+      "severity_sigma": self.severity_sigma,
+      "risk_loading": self.risk_loading
+    }
+
+    values.update(updates)
+
+    return ModelParameters(**values)

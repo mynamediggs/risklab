@@ -35,7 +35,7 @@ if __name__ == '__main__':
         policies_with_claims_per_year,
         average_claim_severities,
         largest_claims
-    ) = simulation.monte_carlo_simulation(parameters)
+    ) = simulation.monte_carlo_simulation(model_parameters)
 
     model.plot_loss_distribution(portfolio_losses, p95, p99)
 

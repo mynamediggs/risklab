@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_loss_distribution(portfolio_losses, p95, p99):
@@ -65,6 +66,81 @@ def plot_sensitivity_analysis(results):
     axes[2].set_xlabel("Risk Loading")
     axes[2].set_ylabel("Gross Premium ($)")
     axes[2].grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_portfolio_comparison(comparison_results):
+    portfolio_names = list(comparison_results.keys())
+
+    expected_losses = [
+        results["expected_loss"]
+        for results in comparison_results.values()
+    ]
+
+    simulated_means = [
+        results["simulated_mean"]
+        for results in comparison_results.values()
+    ]
+
+    p95_values = [
+        results["p95"]
+        for results in comparison_results.values()
+    ]
+
+    p99_values = [
+        results["p99"]
+        for results in comparison_results.values()
+    ]
+
+    x = np.arange(len(portfolio_names))
+    width = 0.35
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Expected vs. simulated average losses
+    axes[0].bar(
+        x - width / 2,
+        expected_losses,
+        width,
+        label="Expected Loss"
+    )
+
+    axes[0].bar(
+        x + width / 2,
+        simulated_means,
+        width,
+        label="Simulated Mean"
+    )
+
+    axes[0].set_title("Expected vs. Simulated Annual Loss")
+    axes[0].set_ylabel("Annual Loss ($)")
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(portfolio_names)
+    axes[0].legend()
+
+    # Tail risk comparison
+    axes[1].bar(
+        x - width / 2,
+        p95_values,
+        width,
+        label="95th Percentile"
+    )
+
+    axes[1].bar(
+        x + width / 2,
+        p99_values,
+        width,
+        label="99th Percentile"
+    )
+
+    axes[1].set_title("Portfolio Tail Risk")
+    axes[1].set_ylabel("Annual Loss ($)")
+    axes[1].set_xticks(x)
+    axes[1].set_xticklabels(portfolio_names)
+    axes[1].legend()
 
     plt.tight_layout()
     plt.show()

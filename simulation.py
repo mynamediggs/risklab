@@ -205,4 +205,51 @@ def run_sensitivity_analysis():
     "loading_premiums": loading_premiums
   }
 
+def compare_portfolios(portfolios, num_simulations=3000):
+  comparison_results = {}
 
+  for name, model_params in portfolios.items():
+    annual_losses = np.zeros(num_simulations)
+
+    # Simulate the portfolio over multiple years
+    for i in range(num_simulations):
+      results = simulate_portfolio(model_params)
+      annual_losses[i] = results["total_losses"]
+
+    # Calculate theoretical expected annual losses
+    pure_premium = (
+        model_params.claim_rate
+        * model_params.average_claim_cost
+    )
+
+    expected_loss = model_params.num_policies * pure_premium
+
+    # Store portfolio statistics
+    comparison_results[name] = {
+      "expected_loss": expected_loss,
+      "simulated_mean": float(annual_losses.mean()),
+      "simulated_std": float(annual_losses.std()),
+      "p95": float(np.percentile(annual_losses, 95)),
+      "p99": float(np.percentile(annual_losses, 99)),
+      "pure_premium": pure_premium,
+      "gross_premium": calculate_gross_premium(model_params)
+    }
+
+  return comparison_results
+
+
+def print_portfolio_comparison(comparison_results):
+  print("\n--- Portfolio Comparison ---")
+
+  for name, results in comparison_results.items():
+    print(f"\n{name} Portfolio")
+    print("-" * 40)
+
+    print(f"Expected Annual Loss: ${results['expected_loss']:,.2f}")
+    print(f"Simulated Average Loss: ${results['simulated_mean']:,.2f}")
+    print(f"Standard Deviation: ${results['simulated_std']:,.2f}")
+    print(f"95th Percentile Loss: ${results['p95']:,.2f}")
+    print(f"99th Percentile Loss: ${results['p99']:,.2f}")
+
+    print(f"Pure Premium (per policy): ${results['pure_premium']:,.2f}")
+    print(f"Gross Premium (per policy): ${results['gross_premium']:,.2f}")

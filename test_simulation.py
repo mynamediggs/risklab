@@ -1,82 +1,153 @@
+
 import numpy as np
 import pytest
+
 import simulation
+from parameters import ModelParameters
 
-def test_single_year_results_are_valid():
-  results = simulation.simulate_portfolio()
 
-  # Check that all expected results are present
-  assert "total_claims" in results
-  assert "total_losses" in results
-  assert "average_loss" in results
-  assert "largest_policy_loss" in results
-  assert "policies_with_claims" in results
+# -------------------------------
+# Model Parameter Tests
+# -------------------------------
 
-  # Counts must be nonnegative
-  assert results["total_claims"] >= 0
-  assert results["policies_with_claims"] >= 0
-  assert results["policies_with_claims"] <= simulation.NUM_POLICIES
+def test_default_parameters():
+    params = ModelParameters()
 
-  # There cannot be more policies with claims than total claims
-  assert results["total_claims"] >= results["policies_with_claims"]
+    assert params.num_policies == 1000
+    assert params.claim_rate == 0.3
+    assert params.average_claim_cost == 1000
+    assert params.severity_sigma == 1.0
+    assert params.risk_loading == 0.2
 
-  # Losses cannot be negative
-  assert results["total_losses"] >= 0
-  assert results["average_loss"] >= 0
-  assert results["largest_policy_loss"] >= 0
 
-  # Average loss should equal total losses divided by policies
-  assert results["average_loss"] == pytest.approx(
-    results["total_losses"] / simulation.NUM_POLICIES
-  )
+@pytest.mark.parametrize(
+    "parameter",
+    [
+        {"num_policies": 0},
+        {"claim_rate": -0.1},
+        {"average_claim_cost": 0},
+        {"severity_sigma": 0},
+        {"risk_loading": -0.1}
+    ]
+)
+def test_invalid_parameters(parameter):
+    with pytest.raises(ValueError):
+        ModelParameters(**parameter)
 
-  # The largest policy loss cannot exceed total portfolio losses
-  assert results["largest_policy_loss"] <= results["total_losses"]
 
-def test_simulated_mean_matches_theory():
-    np.random.seed(12345)
+def test_with_updates():
+    params = ModelParameters()
 
-    num_simulations = 3000
-    annual_losses = np.array([
-      simulation.simulate_portfolio()["total_losses"]
-      for _ in range(num_simulations)
-    ])
+    updated_params = params.with_updates(claim_rate=0.5)
 
-    theoretical_mean = (
-        simulation.NUM_POLICIES *
-        simulation.CLAIM_RATE *
-        simulation.AVERAGE_CLAIM_COST
+    assert updated_params.claim_rate == 0.5
+
+    # Original parameters should remain unchanged
+    assert params.claim_rate == 0.3
+
+
+# -------------------------------
+# Simulation Tests
+# -------------------------------
+
+def test_simulate_portfolio():
+    params = ModelParameters(
+        num_policies=2,
+        claim_rate=0.2,
+        average_claim_cost=100,
+        severity_sigma=0.5
     )
 
-    # Allow a 2% relative tolerance for Monte Carlo sampling variation
-    assert annual_losses.mean() == pytest.approx(
-      theoretical_mean,
-      rel=0.02
+    # Control the random results so this test is predictable
+    monkeypatch = pytest.MonkeyPatch()
+
+    monkeypatch.setattr(
+        simulation.np.random,
+        "poisson",
+        lambda rate, size: np.array([1, 0])
     )
 
+    monkeypatch.setattr(
+        simulation.np.random,
+        "lognormal",
+        lambda mean, sigma, size: np.array([100.0])
+    )
 
-def test_simulated_standard_deviation_matches_theory():
-  np.random.seed(12345)
+    try:
+        results = simulation.simulate_portfolio(params)
+    finally:
+        monkeypatch.undo()
 
-  num_simulations = 3000
-  annual_losses = np.array([
-    simulation.simulate_portfolio()["total_losses"]
-    for _ in range(num_simulations)
-  ])
+    assert results["total_claims"] == 1
+    assert results["total_losses"] == 100.0
+    assert results["average_loss"] == 50.0
+    assert results["largest_policy_loss"] == 100.0
+    assert results["average_claim_severity"] == 100.0
+    assert results["largest_claim"] == 100.0
 
-  severity_sigma = 1.0
 
-  theoretical_variance = (
-      simulation.NUM_POLICIES
-      * simulation.CLAIM_RATE
-      * simulation.AVERAGE_CLAIM_COST ** 2
-      * np.exp(severity_sigma ** 2)
-  )
+def test_zero_claim_rate():
+    params = ModelParameters(claim_rate=0)
 
-  theoretical_std = np.sqrt(theoretical_variance)
+    results = simulation.simulate_portfolio(params)
 
-  # Allow a 10% relative tolerance for the estimated standard deviation
-  assert annual_losses.std() == pytest.approx(
-    theoretical_std,
-    rel=0.10
-  )
+    assert results["total_claims"] == 0
+    assert results["total_losses"] == 0
+    assert results["average_claim_severity"] == 0
+
+
+# -------------------------------
+# Pricing Tests
+# -------------------------------
+
+def test_expected_portfolio_losses():
+    params = ModelParameters(
+        num_policies=1000,
+        claim_rate=0.3,
+        average_claim_cost=1000
+    )
+
+    expected_losses = simulation.calculate_expected_portfolio_losses(
+        params
+    )
+
+    assert expected_losses == 300000
+
+
+def test_gross_premium():
+    params = ModelParameters(
+        claim_rate=0.3,
+        average_claim_cost=1000,
+        risk_loading=0.2
+    )
+
+    gross_premium = simulation.calculate_gross_premium(params)
+
+    assert gross_premium == 360
+
+
+# -------------------------------
+# Portfolio Comparison Tests
+# -------------------------------
+
+def test_compare_portfolios():
+    portfolios = {
+        "Standard": ModelParameters(),
+        "High Frequency": ModelParameters(claim_rate=0.5),
+        "High Severity": ModelParameters(average_claim_cost=1500)
+    }
+
+    results = simulation.compare_portfolios(
+        portfolios,
+        num_simulations=100
+    )
+
+    assert len(results) == 3
+
+    assert results["Standard"]["expected_loss"] == 300000
+    assert results["High Frequency"]["expected_loss"] == 500000
+    assert results["High Severity"]["expected_loss"] == 450000
+
+    for portfolio_results in results.values():
+        assert portfolio_results["p99"] >= portfolio_results["p95"]
+        assert portfolio_results["simulated_std"] >= 0

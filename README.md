@@ -18,6 +18,11 @@ The project models insurance claim frequency using a Poisson distribution and cl
 - **Interactive Dashboard:** Uses Streamlit to visualize simulation results and adjust model parameters.
 - **Automated Testing:** Uses pytest to verify simulation, pricing, and parameter validation.
 
+## Dashboard Preview
+
+![RiskLab Dashboard](screenshots/dashboard.png)
+
+
 ## Mathematical Model
 
 ### 1. Claim Frequency

@@ -20,7 +20,7 @@ The project models insurance claim frequency using a Poisson distribution and cl
 
 ## Dashboard Preview
 
-![RiskLab Dashboard](screenshots/dashboard.png)
+![RiskLab Dashboard](screenshots/risklab_dashboard.png)
 
 
 ## Mathematical Model

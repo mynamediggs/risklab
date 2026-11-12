@@ -151,3 +151,36 @@ def test_compare_portfolios():
     for portfolio_results in results.values():
         assert portfolio_results["p99"] >= portfolio_results["p95"]
         assert portfolio_results["simulated_std"] >= 0
+
+
+def test_monte_carlo_simulation():
+    params = ModelParameters(
+        num_policies=100,
+        claim_rate=0.3,
+        average_claim_cost=1000
+    )
+
+    results = simulation.monte_carlo_simulation(
+        params,
+        num_simulations=100
+    )
+
+    (
+        portfolio_losses,
+        p95,
+        p99,
+        total_claims_per_year,
+        policies_with_claims_per_year,
+        average_claim_severities,
+        largest_claims
+    ) = results
+
+    assert len(portfolio_losses) == 100
+    assert len(total_claims_per_year) == 100
+    assert len(policies_with_claims_per_year) == 100
+    assert len(average_claim_severities) == 100
+    assert len(largest_claims) == 100
+
+    assert np.all(portfolio_losses >= 0)
+    assert np.all(total_claims_per_year >= 0)
+    assert p99 >= p95

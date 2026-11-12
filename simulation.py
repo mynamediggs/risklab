@@ -3,76 +3,136 @@ np.random.seed(42)
 
 
 
+
 def simulate_portfolio(model_params):
-  claims = np.random.poisson(model_params.claim_rate, model_params.num_policies)
-
-  severity_sigma = model_params.severity_sigma
-  severity_mu = np.log(model_params.average_claim_cost) - severity_sigma ** 2 / 2
-
-  claim_costs = np.random.lognormal(
-    mean=severity_mu,
-    sigma=severity_sigma,
-    size=int(claims.sum())
-  )
-
-  policy_losses = np.zeros(model_params.num_policies)
-  claim_index = 0
-
-  for i in range(model_params.num_policies):
-    num_claims = claims[i]
-
-    policy_losses[i] = claim_costs[
-      claim_index:claim_index + num_claims
-    ].sum()
-
-    claim_index += num_claims
-
-  return {
-    "total_claims": int(claims.sum()),
-    "total_losses": float(policy_losses.sum()),
-    "average_loss": float(policy_losses.mean()),
-    "largest_policy_loss": float(policy_losses.max()),
-    "policies_with_claims": int(np.count_nonzero(claims)),
-    "average_claim_severity": (
-      float(claim_costs.mean()) if claim_costs.size > 0 else 0.0
-    ),
-    "largest_claim": (
-      float(claim_costs.max()) if claim_costs.size > 0 else 0.0
+    claims = np.random.poisson(
+        model_params.claim_rate,
+        model_params.num_policies
     )
-  }
 
-
-
-def monte_carlo_simulation(model_params):
-  num_simulations = 10000
-
-  total_claims_per_year = np.zeros(num_simulations)
-  policies_with_claims_per_year = np.zeros(num_simulations)
-  average_claim_severities = np.zeros(num_simulations)
-  largest_claims = np.zeros(num_simulations)
-  portfolio_losses = np.zeros(num_simulations)
-
-  for i in range(num_simulations):
-    results = simulate_portfolio(model_params)
-
-    portfolio_losses[i] = results["total_losses"]
-    total_claims_per_year[i] = results["total_claims"]
-    policies_with_claims_per_year[i] = results["policies_with_claims"]
-    average_claim_severities[i] = results["average_claim_severity"]
-    largest_claims[i] = results["largest_claim"]
-
-  p95 = np.percentile(portfolio_losses, 95)
-  p99 = np.percentile(portfolio_losses, 99)
-
-  return (
-      portfolio_losses,
-      p95,
-      p99,
-      total_claims_per_year,
-      policies_with_claims_per_year,
-      average_claim_severities,
-      largest_claims
+    severity_sigma = model_params.severity_sigma
+    severity_mu = (
+        np.log(model_params.average_claim_cost)
+        - severity_sigma ** 2 / 2
     )
+
+    claim_costs = np.random.lognormal(
+        mean=severity_mu,
+        sigma=severity_sigma,
+        size=int(claims.sum())
+    )
+
+    # Associate each claim with its policy
+    policy_indices = np.repeat(
+        np.arange(model_params.num_policies),
+        claims
+    )
+
+    # Calculate total losses for each policy
+    policy_losses = np.bincount(
+        policy_indices,
+        weights=claim_costs,
+        minlength=model_params.num_policies
+    )
+
+    return {
+        "total_claims": int(claims.sum()),
+        "total_losses": float(policy_losses.sum()),
+        "average_loss": float(policy_losses.mean()),
+        "largest_policy_loss": float(policy_losses.max()),
+        "policies_with_claims": int(np.count_nonzero(claims)),
+        "average_claim_severity": (
+            float(claim_costs.mean())
+            if claim_costs.size > 0 else 0.0
+        ),
+        "largest_claim": (
+            float(claim_costs.max())
+            if claim_costs.size > 0 else 0.0
+        )
+    }
+
+
+
+
+
+def monte_carlo_simulation(model_params, num_simulations=10000):
+    if num_simulations <= 0:
+        raise ValueError("Number of simulations must be positive.")
+
+    # Generate claim counts for every policy in every simulated year
+    claims = np.random.poisson(
+        model_params.claim_rate,
+        size=(num_simulations, model_params.num_policies)
+    )
+
+    # Calculate total claims for each year
+    total_claims_per_year = claims.sum(axis=1)
+
+    # Generate all claim severities
+    severity_sigma = model_params.severity_sigma
+    severity_mu = (
+        np.log(model_params.average_claim_cost)
+        - severity_sigma ** 2 / 2
+    )
+
+    claim_costs = np.random.lognormal(
+        mean=severity_mu,
+        sigma=severity_sigma,
+        size=int(total_claims_per_year.sum())
+    )
+
+    # Associate every claim with its simulated year
+    year_indices = np.repeat(
+        np.arange(num_simulations),
+        total_claims_per_year
+    )
+
+    # Calculate total portfolio losses for each year
+    portfolio_losses = np.bincount(
+        year_indices,
+        weights=claim_costs,
+        minlength=num_simulations
+    )
+
+    # Calculate number of policies with claims per year
+    policies_with_claims_per_year = np.count_nonzero(
+        claims,
+        axis=1
+    )
+
+    # Average claim severity for each year
+    total_severity_per_year = portfolio_losses
+
+    average_claim_severities = np.divide(
+        total_severity_per_year,
+        total_claims_per_year,
+        out=np.zeros(num_simulations, dtype=float),
+        where=total_claims_per_year > 0
+    )
+
+    # Calculate largest claim for each year
+    largest_claims = np.zeros(num_simulations)
+
+    np.maximum.at(
+        largest_claims,
+        year_indices,
+        claim_costs
+    )
+
+    # Calculate risk percentiles
+    p95 = float(np.percentile(portfolio_losses, 95))
+    p99 = float(np.percentile(portfolio_losses, 99))
+
+    return (
+        portfolio_losses,
+        p95,
+        p99,
+        total_claims_per_year,
+        policies_with_claims_per_year,
+        average_claim_severities,
+        largest_claims
+    )
+
 
 
 
